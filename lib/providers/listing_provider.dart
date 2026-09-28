@@ -12,3 +12,19 @@ final listingsProvider = StreamProvider<List<ListingModel>>((ref) {
       .watch(firestoreServiceProvider)
       .getApprovedListings();
 });
+
+final selectedCategoryProvider =
+NotifierProvider<SelectedCategoryNotifier, String>(
+  SelectedCategoryNotifier.new,
+);
+
+class SelectedCategoryNotifier extends Notifier<String> {
+  @override
+  String build() {
+    return 'All';
+  }
+
+  void selectCategory(String category) {
+    state = category;
+  }
+}

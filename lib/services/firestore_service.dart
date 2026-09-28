@@ -39,6 +39,24 @@ class FirestoreService {
     );
   }
 
+  Stream<List<ListingModel>> getPendingListings() {
+    return _firestore
+        .collection('listings')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+          .map(
+            (doc) => ListingModel.fromMap(
+          doc.id,
+          doc.data(),
+        ),
+      )
+          .toList(),
+    );
+  }
+
   Stream<List<ListingModel>> getMyListings(String sellerId) {
     return _firestore
         .collection('listings')
@@ -54,6 +72,25 @@ class FirestoreService {
       )
           .toList(),
     );
+  }
+
+  Future<void> updateListingStatus(
+      String listingId,
+      String status,
+      ) {
+    return _firestore
+        .collection('listings')
+        .doc(listingId)
+        .update({
+      'status': status,
+    });
+  }
+
+  Future<void> updateListing(ListingModel listing) {
+    return _firestore
+        .collection('listings')
+        .doc(listing.id)
+        .update(listing.toMap());
   }
 
   Future<void> deleteListing(String listingId) {

@@ -11,6 +11,9 @@ class ListingModel {
   final String sellerId;
   final DateTime createdAt;
   final String status;
+  final String sellerName;
+  final String sellerPhone;
+  final String location;
 
   ListingModel({
     required this.id,
@@ -23,6 +26,9 @@ class ListingModel {
     required this.sellerId,
     required this.createdAt,
     this.status = 'pending',
+    this.sellerName = '',
+    this.sellerPhone = '',
+    this.location = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -36,6 +42,9 @@ class ListingModel {
       'sellerId': sellerId,
       'createdAt': Timestamp.fromDate(createdAt),
       'status': status,
+      'sellerName': sellerName,
+      'sellerPhone': sellerPhone,
+      'location': location,
     };
   }
 
@@ -54,6 +63,9 @@ class ListingModel {
       sellerId: map['sellerId'] ?? '',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       status: map['status'] ?? 'pending',
+      sellerName: map['sellerName'] ?? '',
+      sellerPhone: map['sellerPhone'] ?? '',
+      location: map['location'] ?? '',
     );
   }
 }

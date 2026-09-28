@@ -14,6 +14,9 @@ class ListingController {
     required String category,
     required String condition,
     required String imageUrl,
+    required String sellerName,
+    required String sellerPhone,
+    required String location,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -32,6 +35,9 @@ class ListingController {
       sellerId: user.uid,
       createdAt: DateTime.now(),
       status: 'pending',
+      sellerName: sellerName,
+      sellerPhone: sellerPhone,
+      location: location,
     );
 
     await _firestoreService.createListing(listing);

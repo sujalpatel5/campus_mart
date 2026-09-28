@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class ImageService {
-  Future<String> uploadImage(File image) async {
+  Future<String> uploadImage(XFile image) async {
     final request = http.MultipartRequest(
       'POST',
       Uri.parse(
@@ -12,24 +12,30 @@ class ImageService {
       ),
     );
 
-    request.fields['upload_preset'] = 'ml_default';
+    request.fields['upload_preset'] = 'campusmart_unsigned';
+
+    final bytes = await image.readAsBytes();
 
     request.files.add(
-      await http.MultipartFile.fromPath(
+      http.MultipartFile.fromBytes(
         'file',
-        image.path,
+        bytes,
+        filename: image.name,
       ),
     );
 
     final response = await request.send();
 
-    if (response.statusCode == 200) {
-      final responseData = await response.stream.bytesToString();
-      final data = jsonDecode(responseData);
+    final responseData =
+    await response.stream.bytesToString();
 
+    if (response.statusCode == 200) {
+      final data = jsonDecode(responseData);
       return data['secure_url'];
     }
 
-    throw Exception('Image upload failed');
+    throw Exception(
+      'Cloudinary error: $responseData',
+    );
   }
 }
