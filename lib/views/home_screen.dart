@@ -137,33 +137,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF38BDF8),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF38BDF8)
-                        .withValues(alpha: 0.25),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.add,
-                color: Color(0xFF0F172A),
-                size: 28,
-              ),
-            ),
-            const SizedBox(height: 3),
-            const Text(
-              'Sell',
-              style: TextStyle(
-                color: Color(0xFF94A3B8),
-                fontSize: 11,
+            Transform.translate(
+              offset: const Offset(0, -5),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8)
+                          .withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Color(0xFF0F172A),
+                  size: 28,
+                ),
               ),
             ),
           ],

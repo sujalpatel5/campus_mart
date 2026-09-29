@@ -25,7 +25,6 @@ class ImageService {
     );
 
     final response = await request.send();
-
     final responseData =
     await response.stream.bytesToString();
 

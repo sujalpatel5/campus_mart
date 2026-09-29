@@ -33,7 +33,8 @@ class CampusMart extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: 'CampusMart',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        scaffoldBackgroundColor:
+        const Color(0xFF0F172A),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF38BDF8),
           brightness: Brightness.dark,
@@ -49,7 +50,7 @@ class CampusMart extends ConsumerWidget {
             return const VerifyEmailScreen();
           }
 
-          return const HomeScreen();
+          return HomeScreen();
         },
         loading: () => const Scaffold(
           backgroundColor: Color(0xFF0F172A),
@@ -64,8 +65,9 @@ class CampusMart extends ConsumerWidget {
           body: Center(
             child: Text(
               error.toString(),
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Colors.white,
+                color: Color(0xFFF8FAFC),
               ),
             ),
           ),

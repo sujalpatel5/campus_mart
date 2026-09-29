@@ -1,48 +1,67 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../controllers/listing_controller.dart';
-import '../providers/auth_provider.dart';
 import '../services/image_service.dart';
 
-class CreateListingScreen extends ConsumerStatefulWidget {
+class CreateListingScreen extends StatefulWidget {
   const CreateListingScreen({super.key});
 
   @override
-  ConsumerState<CreateListingScreen> createState() =>
+  State<CreateListingScreen> createState() =>
       _CreateListingScreenState();
 }
 
 class _CreateListingScreenState
-    extends ConsumerState<CreateListingScreen> {
-  final titleController = TextEditingController();
-  final descriptionController = TextEditingController();
-  final priceController = TextEditingController();
-  final nameController = TextEditingController();
-  final phoneController = TextEditingController();
-  final locationController = TextEditingController();
+    extends State<CreateListingScreen> {
+  final ListingController _listingController =
+  ListingController();
 
-  final ImagePicker _picker = ImagePicker();
   final ImageService _imageService = ImageService();
 
-  XFile? selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
-  String? selectedCategory;
-  String? selectedCondition;
+  final TextEditingController _titleController =
+  TextEditingController();
 
-  final categories = [
-    'Books & Notes',
+  final TextEditingController _descriptionController =
+  TextEditingController();
+
+  final TextEditingController _priceController =
+  TextEditingController();
+
+  final TextEditingController _sellerNameController =
+  TextEditingController();
+
+  final TextEditingController _sellerPhoneController =
+  TextEditingController();
+
+  final TextEditingController _locationController =
+  TextEditingController();
+
+  XFile? _selectedImage;
+
+  String _selectedCategory = 'Electronics';
+
+  String _selectedCondition = 'Like New';
+
+  bool _isLoading = false;
+
+  final List<String> _categories = [
     'Electronics',
+    'Books',
     'Furniture',
     'Clothing',
-    'Bikes & Cycles',
-    'Sports & Fitness',
-    'Stationery',
+    'Vehicles',
+    'Sports',
+    'Notes',
+    'Accessories',
     'Other',
   ];
 
-  final conditions = [
+  final List<String> _conditions = [
     'New',
     'Like New',
     'Good',
@@ -50,129 +69,137 @@ class _CreateListingScreenState
   ];
 
   @override
-  void initState() {
-    super.initState();
-
-    final user = ref.read(authStateProvider).value;
-
-    nameController.text =
-    user?.displayName?.isNotEmpty == true
-        ? user!.displayName!
-        : user?.email?.split('@').first ?? '';
-  }
-
-  @override
   void dispose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    priceController.dispose();
-    nameController.dispose();
-    phoneController.dispose();
-    locationController.dispose();
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _sellerNameController.dispose();
+    _sellerPhoneController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
   Future<void> pickImage() async {
     final image = await _picker.pickImage(
       source: ImageSource.gallery,
+      imageQuality: 85,
     );
 
-    if (image != null) {
-      setState(() {
-        selectedImage = image;
-      });
+    if (image == null) {
+      return;
     }
+
+    setState(() {
+      _selectedImage = image;
+    });
   }
 
   Future<void> createListing() async {
-    if (titleController.text.trim().isEmpty ||
-        descriptionController.text.trim().isEmpty ||
-        priceController.text.trim().isEmpty ||
-        selectedCategory == null ||
-        selectedCondition == null ||
-        selectedImage == null ||
-        nameController.text.trim().isEmpty ||
-        phoneController.text.trim().isEmpty ||
-        locationController.text.trim().isEmpty) {
+    if (_titleController.text.trim().isEmpty ||
+        _descriptionController.text.trim().isEmpty ||
+        _priceController.text.trim().isEmpty ||
+        _sellerNameController.text.trim().isEmpty ||
+        _sellerPhoneController.text.trim().isEmpty ||
+        _locationController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please fill all fields and select an image',
-          ),
+          content: Text('Please fill all fields.'),
         ),
       );
       return;
     }
 
-    try {
-      ref
-          .read(loadingProvider.notifier)
-          .setLoading(true);
+    final price = double.tryParse(
+      _priceController.text.trim(),
+    );
 
-      final imageUrl =
-      await _imageService.uploadImage(selectedImage!);
-
-      await ListingController().createListing(
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
-        price: double.parse(
-          priceController.text.trim(),
+    if (price == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid price.'),
         ),
-        category: selectedCategory!,
-        condition: selectedCondition!,
-        imageUrl: imageUrl,
-        sellerName: nameController.text.trim(),
-        sellerPhone: phoneController.text.trim(),
-        location: locationController.text.trim(),
+      );
+      return;
+    }
+
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an image.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final imageUrl =
+      await _imageService.uploadImage(
+        _selectedImage!,
       );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Listing submitted for approval',
-            ),
-          ),
-        );
+      await _listingController.createListing(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        price: price,
+        category: _selectedCategory,
+        condition: _selectedCondition,
+        imageUrl: imageUrl,
+        sellerName: _sellerNameController.text.trim(),
+        sellerPhone: _sellerPhoneController.text.trim(),
+        location: _locationController.text.trim(),
+      );
 
-        Navigator.pop(context);
+      if (!mounted) {
+        return;
       }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Listing submitted for approval.',
           ),
-        );
+        ),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) {
+        return;
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
     } finally {
-      ref
-          .read(loadingProvider.notifier)
-          .setLoading(false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  InputDecoration fieldDecoration(
-      String label,
+  InputDecoration inputDecoration(
+      String hint,
       IconData icon,
       ) {
     return InputDecoration(
-      labelText: label,
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: Color(0xFF94A3B8),
+      ),
       prefixIcon: Icon(
         icon,
         color: const Color(0xFF38BDF8),
       ),
-      labelStyle: const TextStyle(
-        color: Color(0xFF94A3B8),
-      ),
       filled: true,
       fillColor: const Color(0xFF1F2937),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFF334155),
-        ),
-      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
@@ -183,7 +210,82 @@ class _CreateListingScreenState
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
           color: Color(0xFF38BDF8),
-          width: 2,
+        ),
+      ),
+    );
+  }
+
+  Widget buildImageBox() {
+    return GestureDetector(
+      onTap: pickImage,
+      child: Container(
+        height: 205,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F2937),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF334155),
+          ),
+        ),
+        child: _selectedImage == null
+            ? Column(
+          mainAxisAlignment:
+          MainAxisAlignment.center,
+          children: const [
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              color: Color(0xFF38BDF8),
+              size: 48,
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Add Item Image',
+              style: TextStyle(
+                color: Color(0xFFF8FAFC),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 5),
+            Text(
+              'Tap to choose from gallery',
+              style: TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        )
+            : ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.file(
+                File(_selectedImage!.path),
+                fit: BoxFit.cover,
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius:
+                    BorderRadius.circular(30),
+                  ),
+                  child: IconButton(
+                    onPressed: pickImage,
+                    icon: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -191,137 +293,94 @@ class _CreateListingScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(loadingProvider);
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F172A),
-        title: const Text('Create Listing'),
+        elevation: 0,
+        title: const Text(
+          'Create Listing',
+          style: TextStyle(
+            color: Color(0xFFF8FAFC),
+            fontSize: 21,
+          ),
+        ),
+        iconTheme: const IconThemeData(
+          color: Color(0xFFF8FAFC),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          10,
+          16,
+          30,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
           children: [
             const Text(
               'Item Details',
               style: TextStyle(
                 color: Color(0xFFF8FAFC),
-                fontSize: 22,
+                fontSize: 21,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            GestureDetector(
-              onTap: pickImage,
-              child: Container(
-                width: double.infinity,
-                height: 220,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1F2937),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF334155),
-                  ),
-                ),
-                child: selectedImage == null
-                    ? const Column(
-                  mainAxisAlignment:
-                  MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      color: Color(0xFF38BDF8),
-                      size: 50,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Add Item Image',
-                      style: TextStyle(
-                        color: Color(0xFFF8FAFC),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      'Tap to choose from gallery',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                )
-                    : ClipRRect(
-                  borderRadius:
-                  BorderRadius.circular(16),
-                  child: Image(
-                    image: NetworkImage(
-                      selectedImage!.path,
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 18),
+            buildImageBox(),
+            const SizedBox(height: 18),
             TextField(
-              controller: titleController,
+              controller: _titleController,
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              decoration: fieldDecoration(
+              decoration: inputDecoration(
                 'Item Name',
                 Icons.shopping_bag_outlined,
               ),
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             TextField(
-              controller: descriptionController,
+              controller: _descriptionController,
               maxLines: 4,
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              decoration: fieldDecoration(
+              decoration: inputDecoration(
                 'Description',
                 Icons.description_outlined,
               ),
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             TextField(
-              controller: priceController,
-              keyboardType: TextInputType.number,
+              controller: _priceController,
+              keyboardType:
+              const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              decoration: fieldDecoration(
+              decoration: inputDecoration(
                 'Price',
                 Icons.currency_rupee,
               ),
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-              value: selectedCategory,
-              dropdownColor: const Color(0xFF1F2937),
-              decoration: fieldDecoration(
-                'Category',
-                Icons.category_outlined,
-              ),
+              value: _selectedCategory,
+              dropdownColor:
+              const Color(0xFF1F2937),
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              items: categories.map(
+              decoration: inputDecoration(
+                'Category',
+                Icons.category_outlined,
+              ),
+              items: _categories.map(
                     (category) {
                   return DropdownMenuItem(
                     value: category,
@@ -330,25 +389,28 @@ class _CreateListingScreenState
                 },
               ).toList(),
               onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+
                 setState(() {
-                  selectedCategory = value;
+                  _selectedCategory = value;
                 });
               },
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-              value: selectedCondition,
-              dropdownColor: const Color(0xFF1F2937),
-              decoration: fieldDecoration(
-                'Condition',
-                Icons.star_border,
-              ),
+              value: _selectedCondition,
+              dropdownColor:
+              const Color(0xFF1F2937),
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              items: conditions.map(
+              decoration: inputDecoration(
+                'Condition',
+                Icons.star_border,
+              ),
+              items: _conditions.map(
                     (condition) {
                   return DropdownMenuItem(
                     value: condition,
@@ -357,90 +419,86 @@ class _CreateListingScreenState
                 },
               ).toList(),
               onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+
                 setState(() {
-                  selectedCondition = value;
+                  _selectedCondition = value;
                 });
               },
             ),
-
-            const SizedBox(height: 32),
-
+            const SizedBox(height: 30),
             const Text(
               'Seller Details',
               style: TextStyle(
                 color: Color(0xFFF8FAFC),
-                fontSize: 22,
+                fontSize: 21,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 18),
             TextField(
-              controller: nameController,
+              controller: _sellerNameController,
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              decoration: fieldDecoration(
-                'Name',
+              decoration: inputDecoration(
+                'Seller Name',
                 Icons.person_outline,
               ),
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             TextField(
-              controller: phoneController,
+              controller: _sellerPhoneController,
               keyboardType: TextInputType.phone,
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              decoration: fieldDecoration(
-                'Mobile Number',
+              decoration: inputDecoration(
+                'Phone Number',
                 Icons.phone_outlined,
               ),
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             TextField(
-              controller: locationController,
+              controller: _locationController,
               style: const TextStyle(
                 color: Color(0xFFF8FAFC),
               ),
-              decoration: fieldDecoration(
+              decoration: inputDecoration(
                 'Location',
                 Icons.location_on_outlined,
               ),
             ),
-
-            const SizedBox(height: 30),
-
+            const SizedBox(height: 28),
             SizedBox(
               width: double.infinity,
-              height: 54,
+              height: 52,
               child: ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : createListing,
+                onPressed:
+                _isLoading ? null : createListing,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                   const Color(0xFF38BDF8),
                   foregroundColor:
                   const Color(0xFF0F172A),
+                  disabledBackgroundColor:
+                  const Color(0xFF334155),
                   shape: RoundedRectangleBorder(
                     borderRadius:
                     BorderRadius.circular(14),
                   ),
                 ),
-                child: isLoading
+                child: _isLoading
                     ? const SizedBox(
-                  width: 24,
                   height: 24,
+                  width: 24,
                   child:
                   CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Color(0xFF0F172A),
+                    strokeWidth: 2.5,
+                    color:
+                    Color(0xFF0F172A),
                   ),
                 )
                     : const Text(
@@ -452,8 +510,6 @@ class _CreateListingScreenState
                 ),
               ),
             ),
-
-            const SizedBox(height: 30),
           ],
         ),
       ),

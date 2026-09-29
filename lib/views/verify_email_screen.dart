@@ -4,8 +4,67 @@ import 'package:flutter/material.dart';
 class VerifyEmailScreen extends StatelessWidget {
   const VerifyEmailScreen({super.key});
 
-  Future<void> resendEmail() async {
-    await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+  Future<void> resendEmail(BuildContext context) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        await user.sendEmailVerification();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification email sent again.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> checkVerification(BuildContext context) async {
+    try {
+      final auth = FirebaseAuth.instance;
+      final user = auth.currentUser;
+
+      if (user == null) {
+        return;
+      }
+
+      await user.reload();
+
+      final updatedUser = auth.currentUser;
+
+      if (updatedUser != null && updatedUser.emailVerified) {
+        return;
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Email is still not verified. Please verify it first.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> logout() async {
@@ -51,8 +110,16 @@ class VerifyEmailScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: resendEmail,
+                    onPressed: () => resendEmail(context),
                     child: const Text('Resend Email'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => checkVerification(context),
+                    child: const Text("I've Verified My Email"),
                   ),
                 ),
                 const SizedBox(height: 12),

@@ -32,7 +32,9 @@ class MyListingsScreen extends StatelessWidget {
               },
               child: const Text(
                 'Delete',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(
+                  color: Colors.red,
+                ),
               ),
             ),
           ],
@@ -45,7 +47,8 @@ class MyListingsScreen extends StatelessWidget {
     }
 
     try {
-      await FirestoreService().deleteListing(listingId);
+      await FirestoreService()
+          .deleteListing(listingId);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +86,8 @@ class MyListingsScreen extends StatelessWidget {
       );
     }
 
+    final firestoreService = FirestoreService();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
@@ -90,7 +95,9 @@ class MyListingsScreen extends StatelessWidget {
         title: const Text('My Listings'),
       ),
       body: StreamBuilder(
-        stream: FirestoreService().getMyListings(user.uid),
+        stream: firestoreService.getMyListings(
+          user.uid,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
@@ -134,7 +141,9 @@ class MyListingsScreen extends StatelessWidget {
 
               return Card(
                 color: const Color(0xFF1F2937),
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(
+                  bottom: 16,
+                ),
                 child: ListTile(
                   contentPadding:
                   const EdgeInsets.all(12),

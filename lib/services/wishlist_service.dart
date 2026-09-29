@@ -6,27 +6,21 @@ class WishlistService {
   final FirebaseFirestore _firestore =
       FirebaseFirestore.instance;
 
-  Future<void> addToWishlist(
-      WishlistModel wishlist,
-      ) {
+  Future<void> addToWishlist(WishlistModel wishlist) {
     return _firestore
         .collection('wishlists')
         .doc(wishlist.id)
         .set(wishlist.toMap());
   }
 
-  Future<void> removeFromWishlist(
-      String wishlistId,
-      ) {
+  Future<void> removeFromWishlist(String wishlistId) {
     return _firestore
         .collection('wishlists')
         .doc(wishlistId)
         .delete();
   }
 
-  Stream<List<WishlistModel>> getWishlist(
-      String userId,
-      ) {
+  Stream<List<WishlistModel>> getWishlist(String userId) {
     return _firestore
         .collection('wishlists')
         .where('userId', isEqualTo: userId)
